@@ -1,54 +1,58 @@
 package io.pivotal.pal.tracker;
 
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 public class InMemoryTimeEntryRepository implements TimeEntryRepository {
 
-    Map<Long, TimeEntry> timeEntries = new HashMap<>();
-    long i=0L;
+    Map<Long, TimeEntry> inMemRepo = new HashMap<Long, TimeEntry>();
+    private long count = 1;
 
+    @Override
+    public TimeEntry find(long timeEntryId) {
+
+        TimeEntry timeEntry = inMemRepo.get(timeEntryId);
+        return timeEntry;
+    }
+
+    @Override
     public TimeEntry create(TimeEntry timeEntry) {
 
-        i++;
-        timeEntry.setId(i);
-        timeEntries.put(i, timeEntry );
+        inMemRepo.put(count, timeEntry);
+        count = count++;
         return timeEntry;
     }
 
-    public TimeEntry find(long id) {
+    @Override
+    public TimeEntry update(long eq, TimeEntry timeEntry) {
 
-        return timeEntries.get(id);
+        TimeEntry existingEntry = inMemRepo.get(eq);
+        if (existingEntry == null)
+            return null;
+        timeEntry.setId(eq);
+        inMemRepo.replace(eq, existingEntry, timeEntry);
+        existingEntry = inMemRepo.get(eq);
+        System.out.println("updated project id: " + existingEntry.getProjectId());
+        return inMemRepo.get(eq);
     }
 
+    @Override
+    public void delete(long timeEntryId) {
+
+        TimeEntry timeEntryOriginal = inMemRepo.get(timeEntryId);
+        if (timeEntryOriginal == null) {
+            throw new RuntimeException(timeEntryId + " not found.");
+        }
+        inMemRepo.remove(timeEntryId);
+    }
+
+    @Override
     public List<TimeEntry> list() {
 
-        List<TimeEntry> timeEntryList = new ArrayList<>();
-
-        for(Long id: timeEntries.keySet()) {
-            timeEntryList.add(timeEntries.get(id));
-        }
-
+        List<TimeEntry> timeEntryList = new ArrayList<TimeEntry>(inMemRepo.values());
         return timeEntryList;
-    }
-
-    public TimeEntry update(long id, TimeEntry timeEntry) {
-
-        if(timeEntries.get(id)==null){
-            return null;
-        }
-
-        timeEntry.setId(id);
-        timeEntries.put(id, timeEntry);
-        return timeEntry;
-    }
-
-    public void delete(long id){
-
-        timeEntries.remove(id);
-
     }
 }
